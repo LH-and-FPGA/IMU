@@ -79,6 +79,13 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 
+C_SOURCES += \
+third_party/segger/Src/SEGGER_RTT_printf.c \
+third_party/segger/Src/SEGGER_RTT.c \
+third_party/BMI088/BMI088driver.c \
+third_party/BMI088/BMI088Middleware.c \
+third_party/BMI088/bsp_delay.c \
+
 # ASM sources
 ASM_SOURCES =  \
 startup_stm32h723xx.s
@@ -148,6 +155,10 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 
+C_INCLUDES += \
+-IBsp/Inc \
+-Ithird_party/segger/Inc \
+-Ithird_party/BMI088/inc \
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
