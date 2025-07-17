@@ -27,7 +27,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "BMI088driver.h"
+#include "BMI088Middleware.h"
+#include "BMI088reg.h"
+#include "SEGGER_RTT.h"
+#include "SEGGER_RTT_Conf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +52,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+float gyro[3], accel[3], temp;
 
 /* USER CODE END PV */
 
@@ -100,13 +105,27 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+  while(BMI088_init()){
+    SEGGER_RTT_printf(0, "BMI088 init failed\n");
+    HAL_Delay(10);
+  }
+  SEGGER_RTT_printf(0, "BMI088 init success\n");
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  float now = 0;
   while (1)
   {
+    BMI088_read(gyro, accel, &temp);
+    if (HAL_GetTick() - now > 1000) {
+      now = HAL_GetTick();
+      SEGGER_RTT_printf(0, "BMI088: gyro: %f %f %f, accel: %f %f %f, temp: %f\n",
+                        gyro[0], gyro[1], gyro[2],
+                        accel[0], accel[1], accel[2],
+                        temp);
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
