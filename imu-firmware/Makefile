@@ -85,6 +85,7 @@ third_party/segger/Src/SEGGER_RTT.c \
 third_party/BMI088/BMI088driver.c \
 third_party/BMI088/BMI088Middleware.c \
 third_party/BMI088/bsp_delay.c \
+Bsp/Src/bsp_kalman.c \
 
 # ASM sources
 ASM_SOURCES =  \

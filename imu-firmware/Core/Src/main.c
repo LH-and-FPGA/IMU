@@ -32,6 +32,7 @@
 #include "BMI088reg.h"
 #include "SEGGER_RTT.h"
 #include "SEGGER_RTT_Conf.h"
+#include "bsp_kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,6 +54,9 @@
 
 /* USER CODE BEGIN PV */
 float gyro[3], accel[3], temp;
+bsp_kalman_t kalman_filter;
+float roll, pitch, yaw;
+uint32_t last_time = 0;
 
 /* USER CODE END PV */
 
@@ -110,21 +114,75 @@ int main(void)
     HAL_Delay(10);
   }
   SEGGER_RTT_printf(0, "BMI088 init success\n");
+  
+  // Initialize Kalman filter
+  bsp_kalman_init(&kalman_filter);
+  SEGGER_RTT_printf(0, "Kalman filter initialized\n");
+  
+  // Calibrate gyroscope (keep device still)
+  SEGGER_RTT_printf(0, "Calibrating gyroscope, keep device still...\n");
+  for (int i = 0; i < 1000; i++) {
+    BMI088_read(gyro, accel, &temp);
+    bsp_kalman_calibrate_gyro(&kalman_filter, gyro, 1000);
+    HAL_Delay(2);
+  }
+  SEGGER_RTT_printf(0, "Gyroscope calibration complete\n");
+  SEGGER_RTT_printf(0, "Gyro offsets: %.4f, %.4f, %.4f\n", 
+                    kalman_filter.gyro_offset[0], 
+                    kalman_filter.gyro_offset[1], 
+                    kalman_filter.gyro_offset[2]);
+  
+  // Initial accelerometer calibration
+  BMI088_read(gyro, accel, &temp);
+  bsp_kalman_calibrate_accel(&kalman_filter, accel);
+  SEGGER_RTT_printf(0, "Accel calibration complete\n");
+  
+  // Let the filter settle
+  SEGGER_RTT_printf(0, "Waiting for filter to settle...\n");
+  for (int i = 0; i < 500; i++) {
+    BMI088_read(gyro, accel, &temp);
+    bsp_kalman_update(&kalman_filter, gyro, accel, 0.002f);
+    HAL_Delay(2);
+  }
+  
+  // Start timer for dt calculation
+  last_time = HAL_GetTick();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  float now = 0;
+  float print_time = 0;
   while (1)
   {
+    // Read sensor data
     BMI088_read(gyro, accel, &temp);
-    if (HAL_GetTick() - now > 1000) {
-      now = HAL_GetTick();
-      SEGGER_RTT_printf(0, "BMI088: gyro: %f %f %f, accel: %f %f %f, temp: %f\n",
-                        gyro[0], gyro[1], gyro[2],
-                        accel[0], accel[1], accel[2],
-                        temp);
+    
+    // Calculate dt
+    uint32_t current_time = HAL_GetTick();
+    float dt = (current_time - last_time) * 0.001f; // Convert to seconds
+    last_time = current_time;
+    
+    // Update Kalman filter
+    bsp_kalman_update(&kalman_filter, gyro, accel, dt);
+    
+    // Get filtered angles
+    bsp_kalman_get_angles(&kalman_filter, &roll, &pitch, &yaw);
+    
+    // Print at 10Hz
+    if (HAL_GetTick() - print_time > 100) {
+      print_time = HAL_GetTick();
+      SEGGER_RTT_printf(0, "Angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f | Static: %d\n",
+                        roll, pitch, yaw, kalman_filter.static_count);
+      
+      // Print raw vs filtered comparison every second
+      static uint32_t detailed_print = 0;
+      if (HAL_GetTick() - detailed_print > 1000) {
+        detailed_print = HAL_GetTick();
+        SEGGER_RTT_printf(0, "Raw Gyro: %.3f %.3f %.3f | Bias: %.3f %.3f %.3f\n",
+                          gyro[0], gyro[1], gyro[2],
+                          kalman_filter.gyro_bias[0], kalman_filter.gyro_bias[1], kalman_filter.gyro_bias[2]);
+      }
     }
     /* USER CODE END WHILE */
 
