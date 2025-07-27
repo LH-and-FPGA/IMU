@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
+#include "main.h"
 
 #define DEG_TO_RAD 0.017453292519943295f
 #define RAD_TO_DEG 57.295779513082323f
@@ -77,6 +78,15 @@ void bsp_kalman_init(bsp_kalman_t *kalman) {
         kalman->accel_scale[i] = 1.0f;
         kalman->gyro_scale[i] = 1.0f;
     }
+    
+    // Initialize angle change detection
+    kalman->angle_change_threshold = 0.1f;  // 0.1 degrees
+    kalman->angle_is_static = 0;
+    kalman->angle_static_duration = 0;
+    kalman->no_change_start_time = 0;
+    kalman->prev_roll = 0.0f;
+    kalman->prev_pitch = 0.0f;
+    kalman->prev_yaw = 0.0f;
 }
 
 void bsp_kalman_reset(bsp_kalman_t *kalman) {
@@ -188,6 +198,9 @@ void bsp_kalman_update(bsp_kalman_t *kalman, float gyro[3], float accel[3], floa
     
     // Convert to Euler angles
     bsp_kalman_quaternion_to_euler(kalman->q, &kalman->roll, &kalman->pitch, &kalman->yaw);
+    
+    // Update angle change detection
+    bsp_kalman_update_angle_change_detection(kalman);
 }
 
 void bsp_kalman_get_angles(bsp_kalman_t *kalman, float *roll, float *pitch, float *yaw) {
@@ -316,4 +329,48 @@ static void quaternion_multiply(float q_out[4], float q1[4], float q2[4]) {
     q_out[1] = q1[0]*q2[1] + q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2];
     q_out[2] = q1[0]*q2[2] - q1[1]*q2[3] + q1[2]*q2[0] + q1[3]*q2[1];
     q_out[3] = q1[0]*q2[3] + q1[1]*q2[2] - q1[2]*q2[1] + q1[3]*q2[0];
+}
+
+void bsp_kalman_update_angle_change_detection(bsp_kalman_t *kalman) {
+    // Calculate angle changes
+    float roll_change = fabs(kalman->roll - kalman->prev_roll);
+    float pitch_change = fabs(kalman->pitch - kalman->prev_pitch);
+    float yaw_change = fabs(kalman->yaw - kalman->prev_yaw);
+    
+    // Handle yaw wrap-around
+    if (yaw_change > 180.0f) {
+        yaw_change = 360.0f - yaw_change;
+    }
+    
+    // Check if any angle has changed more than threshold
+    if (roll_change > kalman->angle_change_threshold ||
+        pitch_change > kalman->angle_change_threshold ||
+        yaw_change > kalman->angle_change_threshold) {
+        // Angle has changed, reset static detection
+        kalman->angle_is_static = 0;
+        kalman->angle_static_duration = 0;
+        kalman->no_change_start_time = HAL_GetTick();
+    } else {
+        // Angle hasn't changed significantly
+        if (kalman->no_change_start_time == 0) {
+            kalman->no_change_start_time = HAL_GetTick();
+        }
+        
+        // Calculate how long the angle has been static
+        kalman->angle_static_duration = HAL_GetTick() - kalman->no_change_start_time;
+
+        // If static for more than 5ms, consider it static， TODO:: 将静止时间改为可控的，将角度改为可控的
+        if (kalman->angle_static_duration >= 1) {
+            kalman->angle_is_static = 1;
+        }
+    }
+    
+    // Update previous angles
+    kalman->prev_roll = kalman->roll;
+    kalman->prev_pitch = kalman->pitch;
+    kalman->prev_yaw = kalman->yaw;
+}
+
+uint8_t bsp_kalman_is_angle_static(bsp_kalman_t *kalman) {
+    return kalman->angle_is_static;
 }

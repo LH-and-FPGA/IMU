@@ -172,8 +172,10 @@ int main(void)
     // Print at 10Hz
     if (HAL_GetTick() - print_time > 100) {
       print_time = HAL_GetTick();
-      SEGGER_RTT_printf(0, "Angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f | Static: %d\n",
-                        roll, pitch, yaw, kalman_filter.static_count);
+      // SEGGER_RTT_printf(0, "Angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f | Static: %d | Angle Static: %s (%.1fs)\n",
+      //                   roll, pitch, yaw, kalman_filter.static_count,
+      //                   kalman_filter.angle_is_static ? "YES" : "NO",
+      //                   kalman_filter.angle_static_duration / 1000.0f);
       
       // Print raw vs filtered comparison every second
       static uint32_t detailed_print = 0;
@@ -182,6 +184,11 @@ int main(void)
         SEGGER_RTT_printf(0, "Raw Gyro: %.3f %.3f %.3f | Bias: %.3f %.3f %.3f\n",
                           gyro[0], gyro[1], gyro[2],
                           kalman_filter.gyro_bias[0], kalman_filter.gyro_bias[1], kalman_filter.gyro_bias[2]);
+        
+        // Print angle change detection status
+        // if (kalman_filter.angle_is_static) {
+        //   SEGGER_RTT_printf(0, "ANGLE STATIC: No change > 0.1° for 1 hour\n");
+        // }
       }
     }
     /* USER CODE END WHILE */
@@ -221,7 +228,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 2;
   RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = 1;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;

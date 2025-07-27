@@ -33,6 +33,15 @@ typedef struct {
     float pitch;
     float yaw;
     
+    // Angle change detection
+    float prev_roll;
+    float prev_pitch;
+    float prev_yaw;
+    uint32_t no_change_start_time;
+    uint32_t angle_static_duration;  // Duration in ms when angle is considered static
+    uint8_t angle_is_static;         // Flag indicating if angle is static
+    float angle_change_threshold;     // Threshold for angle change detection (default 0.1 degrees)
+    
     // Debug info
     uint32_t update_count;
     float computation_time;
@@ -54,6 +63,10 @@ void bsp_kalman_calibrate_accel(bsp_kalman_t *kalman, float accel[3]);
 
 // Zero drift compensation
 void bsp_kalman_update_static_detection(bsp_kalman_t *kalman, float gyro[3], float accel[3]);
+
+// Angle change detection
+void bsp_kalman_update_angle_change_detection(bsp_kalman_t *kalman);
+uint8_t bsp_kalman_is_angle_static(bsp_kalman_t *kalman);
 
 // Helper functions
 void bsp_kalman_quaternion_to_euler(float q[4], float *roll, float *pitch, float *yaw);

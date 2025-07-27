@@ -1,0 +1,32 @@
+
+
+GraphedExpression="(kalman_filter).roll", Color=#e56a6f
+GraphedExpression="(kalman_filter).pitch", Color=#35792b
+GraphedExpression="(kalman_filter).yaw", Color=#769dda
+GraphedExpression="temp", Color=#b14f0d
+OpenDocument="stm32h7xx_it.c", FilePath="C:/Users/han/Desktop/TODO/IMU/imu-firmware/Core/Src/stm32h7xx_it.c", Line=99
+OpenDocument="bsp_ekf.c", FilePath="C:/Users/han/Desktop/TODO/IMU/imu-firmware/Bsp/Src/bsp_ekf.c", Line=0
+OpenDocument="main.c", FilePath="C:/Users/han/Desktop/TODO/IMU/imu-firmware/Core/Src/main.c", Line=67
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=0, w=334, h=1102, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Memory 1", DockArea=BOTTOM, x=2, y=0, w=1335, h=431, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0xE70
+OpenWindow="Watched Data 1", DockArea=FLOATING, x=5187, y=327, w=1385, h=800, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Functions", DockArea=LEFT, x=0, y=0, w=709, h=1102, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Terminal", DockArea=BOTTOM, x=0, y=0, w=938, h=431, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=FLOATING, x=82, y=252, w=1738, h=936, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=FLOATING, x=4373, y=205, w=1865, h=1388, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=1, CodePaneShown=1, PinCursor="Cursor Movable", TimePerDiv="100 ms / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="1506;0", DataGraphShowNamesAtCursor=0, PowerGraphDrawAsPoints=0, PowerGraphLegendShown=1, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1592;0", CodeGraphLegendShown=1, CodeGraphLegendPosition="1612;0"
+OpenWindow="Console", DockArea=BOTTOM, x=1, y=0, w=673, h=431, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
+TableHeader="Functions", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Address";"Size";"#Insts";"Source"], ColWidths=[832;113;100;100;314]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[377;508;271;199]
+TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[100;157;144]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" (kalman_filter).roll";" (kalman_filter).pitch";" (kalman_filter).yaw";" temp"], ColWidths=[100;100;100;100;100;1208]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[194;100;135;135;124;135;130;157;628]
+TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;239;200;1681]
+WatchedExpression="kalman_filter", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="gyro", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="accel", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="temp", Window=Watched Data 1
+WatchedExpression="ekf_filter", RefreshRate=5, Window=Watched Data 1

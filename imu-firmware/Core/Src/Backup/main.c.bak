@@ -18,12 +18,21 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "memorymap.h"
+#include "spi.h"
+#include "tim.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "BMI088driver.h"
+#include "BMI088Middleware.h"
+#include "BMI088reg.h"
+#include "SEGGER_RTT.h"
+#include "SEGGER_RTT_Conf.h"
+#include "bsp_kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +53,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+float gyro[3], accel[3], temp;
+bsp_kalman_t kalman_filter;
+float roll, pitch, yaw;
+uint32_t last_time = 0;
 
 /* USER CODE END PV */
 
@@ -91,14 +104,93 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_TIM6_Init();
+  MX_USB_DEVICE_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+  while(BMI088_init()){
+    SEGGER_RTT_printf(0, "BMI088 init failed\n");
+    HAL_Delay(10);
+  }
+  SEGGER_RTT_printf(0, "BMI088 init success\n");
+  
+  // Initialize Kalman filter
+  bsp_kalman_init(&kalman_filter);
+  SEGGER_RTT_printf(0, "Kalman filter initialized\n");
+  
+  // Calibrate gyroscope (keep device still)
+  SEGGER_RTT_printf(0, "Calibrating gyroscope, keep device still...\n");
+  for (int i = 0; i < 1000; i++) {
+    BMI088_read(gyro, accel, &temp);
+    bsp_kalman_calibrate_gyro(&kalman_filter, gyro, 1000);
+    HAL_Delay(2);
+  }
+  SEGGER_RTT_printf(0, "Gyroscope calibration complete\n");
+  SEGGER_RTT_printf(0, "Gyro offsets: %.4f, %.4f, %.4f\n", 
+                    kalman_filter.gyro_offset[0], 
+                    kalman_filter.gyro_offset[1], 
+                    kalman_filter.gyro_offset[2]);
+  
+  // Initial accelerometer calibration
+  BMI088_read(gyro, accel, &temp);
+  bsp_kalman_calibrate_accel(&kalman_filter, accel);
+  SEGGER_RTT_printf(0, "Accel calibration complete\n");
+  
+  // Let the filter settle
+  SEGGER_RTT_printf(0, "Waiting for filter to settle...\n");
+  for (int i = 0; i < 500; i++) {
+    BMI088_read(gyro, accel, &temp);
+    bsp_kalman_update(&kalman_filter, gyro, accel, 0.002f);
+    HAL_Delay(2);
+  }
+  
+  // Start timer for dt calculation
+  last_time = HAL_GetTick();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  float print_time = 0;
   while (1)
   {
+    // Read sensor data
+    BMI088_read(gyro, accel, &temp);
+    
+    // Calculate dt
+    uint32_t current_time = HAL_GetTick();
+    float dt = (current_time - last_time) * 0.001f; // Convert to seconds
+    last_time = current_time;
+    
+    // Update Kalman filter
+    bsp_kalman_update(&kalman_filter, gyro, accel, dt);
+    
+    // Get filtered angles
+    bsp_kalman_get_angles(&kalman_filter, &roll, &pitch, &yaw);
+    
+    // Print at 10Hz
+    if (HAL_GetTick() - print_time > 100) {
+      print_time = HAL_GetTick();
+      SEGGER_RTT_printf(0, "Angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f | Static: %d | Angle Static: %s (%.1fs)\n",
+                        roll, pitch, yaw, kalman_filter.static_count,
+                        kalman_filter.angle_is_static ? "YES" : "NO",
+                        kalman_filter.angle_static_duration / 1000.0f);
+      
+      // Print raw vs filtered comparison every second
+      static uint32_t detailed_print = 0;
+      if (HAL_GetTick() - detailed_print > 1000) {
+        detailed_print = HAL_GetTick();
+        SEGGER_RTT_printf(0, "Raw Gyro: %.3f %.3f %.3f | Bias: %.3f %.3f %.3f\n",
+                          gyro[0], gyro[1], gyro[2],
+                          kalman_filter.gyro_bias[0], kalman_filter.gyro_bias[1], kalman_filter.gyro_bias[2]);
+        
+        // Print angle change detection status
+        if (kalman_filter.angle_is_static) {
+          SEGGER_RTT_printf(0, "ANGLE STATIC: No change > 0.1° for 1 hour\n");
+        }
+      }
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -121,17 +213,26 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
-  RCC_OscInitStruct.HSICalibrationValue = 64;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 2;
+  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLP = 3;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -142,15 +243,15 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
-  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
