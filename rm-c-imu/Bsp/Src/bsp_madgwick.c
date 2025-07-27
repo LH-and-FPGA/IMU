@@ -1,4 +1,4 @@
-#include "bsp_kalman.h"
+#include "bsp_madgwick.h"
 #include <string.h>
 
 #define PI 3.14159265359f
@@ -25,8 +25,8 @@ static void quaternion_normalize(float q[4]) {
     q[3] *= norm;
 }
 
-// 初始化卡尔曼滤波器
-void bsp_kalman_init(bsp_kalman_t *filter) {
+// 初始化Madgwick滤波器
+void bsp_madgwick_init(bsp_madgwick_t *filter) {
     // 初始化四元数 (单位四元数)
     filter->q[0] = 1.0f;
     filter->q[1] = 0.0f;
@@ -49,7 +49,7 @@ void bsp_kalman_init(bsp_kalman_t *filter) {
 }
 
 // 陀螺仪校准
-void bsp_kalman_calibrate_gyro(bsp_kalman_t *filter, float gyro[3], uint16_t samples) {
+void bsp_madgwick_calibrate_gyro(bsp_madgwick_t *filter, float gyro[3], uint16_t samples) {
     static uint16_t sample_count = 0;
     static float gyro_sum[3] = {0};
     
@@ -74,7 +74,7 @@ void bsp_kalman_calibrate_gyro(bsp_kalman_t *filter, float gyro[3], uint16_t sam
 }
 
 // 加速度计校准（设置初始姿态）
-void bsp_kalman_calibrate_accel(bsp_kalman_t *filter, float accel[3]) {
+void bsp_madgwick_calibrate_accel(bsp_madgwick_t *filter, float accel[3]) {
     // 计算初始roll和pitch角
     float roll = atan2f(accel[1], accel[2]);
     float pitch = atan2f(-accel[0], sqrtf(accel[1]*accel[1] + accel[2]*accel[2]));
@@ -95,7 +95,7 @@ void bsp_kalman_calibrate_accel(bsp_kalman_t *filter, float accel[3]) {
 }
 
 // 静态检测
-static uint8_t detect_static(bsp_kalman_t *filter, float gyro[3]) {
+static uint8_t detect_static(bsp_madgwick_t *filter, float gyro[3]) {
     float gyro_magnitude = sqrtf(gyro[0]*gyro[0] + gyro[1]*gyro[1] + gyro[2]*gyro[2]);
     
     if (gyro_magnitude < filter->static_threshold) {
@@ -112,8 +112,8 @@ static uint8_t detect_static(bsp_kalman_t *filter, float gyro[3]) {
     return filter->is_static;
 }
 
-// 更新卡尔曼滤波器
-void bsp_kalman_update(bsp_kalman_t *filter, float gyro[3], float accel[3], float dt) {
+// 更新Madgwick滤波器
+void bsp_madgwick_update(bsp_madgwick_t *filter, float gyro[3], float accel[3], float dt) {
     if (!filter->is_initialized) {
         return;
     }
@@ -200,7 +200,7 @@ void bsp_kalman_update(bsp_kalman_t *filter, float gyro[3], float accel[3], floa
 }
 
 // 获取欧拉角
-void bsp_kalman_get_angles(bsp_kalman_t *filter, float *roll, float *pitch, float *yaw) {
+void bsp_madgwick_get_angles(bsp_madgwick_t *filter, float *roll, float *pitch, float *yaw) {
     float q0 = filter->q[0], q1 = filter->q[1], q2 = filter->q[2], q3 = filter->q[3];
     
     // 四元数转欧拉角

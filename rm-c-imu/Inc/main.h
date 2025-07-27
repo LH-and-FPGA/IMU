@@ -29,6 +29,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -58,6 +59,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define IST8310_RST_Pin GPIO_PIN_6
+#define IST8310_RST_GPIO_Port GPIOG
+#define IST8310_DRDY_Pin GPIO_PIN_3
+#define IST8310_DRDY_GPIO_Port GPIOG
 #define ACC_CS_Pin GPIO_PIN_4
 #define ACC_CS_GPIO_Port GPIOA
 #define INT1_ACCEL_Pin GPIO_PIN_4

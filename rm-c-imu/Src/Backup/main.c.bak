@@ -27,7 +27,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "BMI088driver.h"
+#include "bsp_delay.h"
+#include "SEGGER_RTT.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +51,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+// BMI088传感器数据变量
+float gyro[3] = {0};      // 陀螺仪数据 [x, y, z] (rad/s)
+float accel[3] = {0};     // 加速度计数据 [x, y, z] (m/s²)
+float temperature = 0;    // 温度数据 (°C)
 
+uint32_t last_print_time = 0;  // 上次打印时间
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,7 +102,31 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
-
+  // 初始化DWT延时系统
+  DWT_Delay_Init();
+  
+  // 初始化SEGGER RTT
+  SEGGER_RTT_Init();
+  SEGGER_RTT_printf(0, "\n=== BMI088 IMU数据读取系统启动 ===\n");
+  SEGGER_RTT_printf(0, "正在初始化BMI088传感器...\n");
+  
+  // 初始化BMI088传感器
+  uint8_t init_result = BMI088_init();
+  if (init_result == BMI088_NO_ERROR) {
+    SEGGER_RTT_printf(0, "BMI088初始化成功!\n");
+    SEGGER_RTT_printf(0, "配置信息:\n");
+    SEGGER_RTT_printf(0, "- 加速度计量程: ±3g\n");
+    SEGGER_RTT_printf(0, "- 陀螺仪量程: ±2000°/s\n");
+    SEGGER_RTT_printf(0, "开始读取数据...\n\n");
+  } else {
+    SEGGER_RTT_printf(0, "BMI088初始化失败! 错误代码: 0x%02X\n", init_result);
+    SEGGER_RTT_printf(0, "请检查硬件连接\n");
+  }
+  
+  // 等待传感器稳定
+  HAL_Delay(100);
+  
+  last_print_time = HAL_GetTick();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -104,6 +136,28 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    // 读取BMI088传感器数据
+    BMI088_read(gyro, accel, &temperature);
+    
+    // 每100ms打印一次数据 (10Hz)
+    uint32_t current_time = HAL_GetTick();
+    if (current_time - last_print_time >= 100) {
+      last_print_time = current_time;
+      
+      // 打印加速度计数据
+      SEGGER_RTT_printf(0, "Accel(m/s²): X=%6.3f Y=%6.3f Z=%6.3f | ",
+                        accel[0], accel[1], accel[2]);
+      
+      // 打印陀螺仪数据 (转换为度/秒)
+      SEGGER_RTT_printf(0, "Gyro(°/s): X=%7.2f Y=%7.2f Z=%7.2f | ",
+                        gyro[0] * 57.2958f, gyro[1] * 57.2958f, gyro[2] * 57.2958f);
+      
+      // 打印温度数据
+      SEGGER_RTT_printf(0, "Temp: %5.1f°C\n", temperature);
+    }
+    
+    // 小延时，避免CPU占用过高
+    HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }

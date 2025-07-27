@@ -1,10 +1,10 @@
-#ifndef BSP_KALMAN_H
-#define BSP_KALMAN_H
+#ifndef BSP_MADGWICK_H
+#define BSP_MADGWICK_H
 
 #include "stdint.h"
 #include "math.h"
 
-// 卡尔曼滤波器状态结构体
+// Madgwick滤波器状态结构体
 typedef struct {
     // 四元数状态 [q0, q1, q2, q3]
     float q[4];
@@ -26,13 +26,13 @@ typedef struct {
     // 状态标志
     uint8_t is_initialized;
     uint8_t is_static;
-} bsp_kalman_t;
+} bsp_madgwick_t;
 
 // 函数声明
-void bsp_kalman_init(bsp_kalman_t *filter);
-void bsp_kalman_calibrate_gyro(bsp_kalman_t *filter, float gyro[3], uint16_t samples);
-void bsp_kalman_calibrate_accel(bsp_kalman_t *filter, float accel[3]);
-void bsp_kalman_update(bsp_kalman_t *filter, float gyro[3], float accel[3], float dt);
-void bsp_kalman_get_angles(bsp_kalman_t *filter, float *roll, float *pitch, float *yaw);
+void bsp_madgwick_init(bsp_madgwick_t *filter);
+void bsp_madgwick_calibrate_gyro(bsp_madgwick_t *filter, float gyro[3], uint16_t samples);
+void bsp_madgwick_calibrate_accel(bsp_madgwick_t *filter, float accel[3]);
+void bsp_madgwick_update(bsp_madgwick_t *filter, float gyro[3], float accel[3], float dt);
+void bsp_madgwick_get_angles(bsp_madgwick_t *filter, float *roll, float *pitch, float *yaw);
 
-#endif // BSP_KALMAN_H
+#endif // BSP_MADGWICK_H

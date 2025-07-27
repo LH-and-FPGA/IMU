@@ -2,7 +2,7 @@
 #include "main.h"
 #include "bsp_delay.h"
 
-#define BMI088_USING_SPI_UNIT   hspi2
+#define BMI088_USING_SPI_UNIT   hspi1
 
 extern SPI_HandleTypeDef BMI088_USING_SPI_UNIT;
 
